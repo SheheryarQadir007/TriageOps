@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="description" content="TriageOps — lead intake and operational triage dashboard." />
+  <title>{{ app_name }} · Lead operations</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/dashboard.css?v=1.0.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -18px rgba(15, 23, 42, 0.22)',
+            drawer: '-24px 0 60px -24px rgba(15, 23, 42, 0.28)',
+          },
+        },
+      },
+    };
+  </script>
+</head>
+
+<body class="min-h-full bg-[#F6F7F9] text-slate-900 antialiased">
+  <a href="#main" class="skip-link">Skip to content</a>
+
+  <!-- Loading bar -->
+  <div id="loading-bar" class="pointer-events-none fixed inset-x-0 top-0 z-[70] hidden h-0.5 overflow-hidden bg-indigo-100">
+    <div class="loading-bar-inner h-full w-1/3 bg-gradient-to-r from-indigo-500 via-indigo-400 to-sky-400"></div>
+  </div>
+
+  <!-- Ambient background -->
+  <div aria-hidden="true" class="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[420px] bg-gradient-to-b from-indigo-50/80 via-slate-50/40 to-transparent"></div>
+
+  <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+    <div class="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <a href="/dashboard" class="group flex items-center gap-3 rounded-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15">
+        <span class="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-white shadow-sm ring-1 ring-slate-900/10">
+          <span aria-hidden="true" class="absolute -right-3 -top-3 h-7 w-7 rounded-full bg-indigo-500/40 blur-md"></span>
+          <svg class="relative h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.25" opacity=".45" />
+            <circle cx="12" cy="12" r="4.25" opacity=".8" />
+            <path d="M12 12l5.2-5.2" />
+            <circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        <span class="flex flex-col leading-tight">
+          <span class="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-slate-950">
+            {{ app_name }}
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500">Ops</span>
+          </span>
+          <span class="mt-0.5 hidden text-[11px] font-medium text-slate-500 sm:block">Lead intake &amp; triage console</span>
+        </span>
+      </a>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <span id="engine-badge" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm" title="Set TRIAGE_PROVIDER to switch classifiers">
+          <span class="relative flex h-1.5 w-1.5">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+          </span>
+          <span id="engine-label">Rules engine</span>
+        </span>
+        <a href="/docs" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15 sm:inline-flex">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 4.5A2.5 2.5 0 017.5 2H19a1 1 0 011 1v16a1 1 0 01-1 1H7.5A2.5 2.5 0 005 22V4.5z" />
+            <path d="M5 17.5A2.5 2.5 0 017.5 15H20M9 6h6M9 10h4" />
+          </svg>
+          API docs
+        </a>
+        <a href="/openapi.json" target="_blank" rel="noopener" aria-label="Open OpenAPI schema" class="hidden rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15 md:inline-flex">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3H7a2 2 0 00-2 2v4a2 2 0 01-2 2 2 2 0 012 2v4a2 2 0 002 2h1M16 3h1a2 2 0 012 2v4a2 2 0 002 2 2 2 0 00-2 2v4a2 2 0 01-2 2h-1" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="relative mx-auto max-w-[1480px] px-4 pb-4 pt-7 sm:px-6 lg:px-8">
+    <!-- Page heading -->
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <div class="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-600">
+          <span class="h-1 w-1 rounded-full bg-indigo-500"></span>
+          Operations desk
+        </div>
+        <h1 class="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-[30px]">Lead pipeline</h1>
+        <p class="mt-1 max-w-xl text-sm text-slate-500">Triage inbound requests, surface emergencies, and move qualified work forward.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="last-updated" class="mr-1 hidden text-[11px] font-medium text-slate-400 sm:inline">Loading…</span>
+        <button id="refresh-btn" type="button" class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15" title="Refresh (R)">
+          <svg id="refresh-icon" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 11a8.1 8.1 0 00-14.7-4.9L3 8.5M3 4v4.5h4.5M4 13a8.1 8.1 0 0014.7 4.9L21 15.5M21 20v-4.5h-4.5" />
+          </svg>
+          <span class="hidden sm:inline">Refresh</span>
+        </button>
+        <button id="auto-refresh-btn" type="button" aria-pressed="false" class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15" title="Auto-refresh every 30 seconds">
+          <span id="auto-dot" class="h-1.5 w-1.5 rounded-full bg-slate-300 transition"></span>
+          <span class="hidden sm:inline">Auto 30s</span>
+        </button>
+        <button id="open-test-lead" type="button" class="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-950 px-3.5 text-xs font-semibold text-white shadow-sm ring-1 ring-slate-950/10 transition hover:bg-slate-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Submit test lead
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <section aria-label="Pipeline summary" class="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <article class="card group relative overflow-hidden p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Total leads</p>
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5v-13z" />
+              <path d="M4 9h16M9 4v16" />
+            </svg>
+          </span>
+        </div>
+        <p id="stat-total" class="mt-3.5 text-[28px] font-semibold leading-none tracking-tight text-slate-950 tabular-nums sm:text-3xl">—</p>
+        <p id="stat-total-sub" class="mt-2 truncate text-[11px] font-medium text-slate-500">Loading pipeline…</p>
+        <span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-indigo-500/70 to-indigo-300/30"></span>
+      </article>
+
+      <article class="card group relative overflow-hidden p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">High urgency</p>
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.5c2.4 2.6 4 4.9 4 7.5a4 4 0 11-8 0c0-1.3.5-2.4 1.4-3.6.3 1.2.9 2 1.8 2.8.6-2.1.9-4.2.8-6.7z" />
+              <path d="M12 14.5c.9 1 1.4 1.9 1.4 2.8a1.4 1.4 0 11-2.8 0c0-.9.5-1.8 1.4-2.8z" />
+            </svg>
+          </span>
+        </div>
+        <p id="stat-high" class="mt-3.5 text-[28px] font-semibold leading-none tracking-tight text-slate-950 tabular-nums sm:text-3xl">—</p>
+        <p id="stat-high-sub" class="mt-2 truncate text-[11px] font-medium text-slate-500">Loading…</p>
+        <span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-rose-500/70 to-rose-300/30"></span>
+      </article>
+
+      <article class="card group relative overflow-hidden p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Qualified</p>
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3l7 2.7v5.1c0 4.3-2.8 7.7-7 10.2-4.2-2.5-7-5.9-7-10.2V5.7L12 3z" />
+              <path d="M8.8 12l2.2 2.2 4.2-4.4" />
+            </svg>
+          </span>
+        </div>
+        <p id="stat-qualified" class="mt-3.5 text-[28px] font-semibold leading-none tracking-tight text-slate-950 tabular-nums sm:text-3xl">—</p>
+        <p id="stat-qualified-sub" class="mt-2 truncate text-[11px] font-medium text-slate-500">Loading…</p>
+        <span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-emerald-500/70 to-emerald-300/30"></span>
+      </article>
+
+      <article class="card group relative overflow-hidden p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Qualified pipeline</p>
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 ring-1 ring-amber-100">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 7.5A1.5 1.5 0 014.5 6h15A1.5 1.5 0 0121 7.5v9a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 16.5v-9z" />
+              <circle cx="12" cy="12" r="2.4" />
+              <path d="M6 9.5v5M18 9.5v5" />
+            </svg>
+          </span>
+        </div>
+        <p id="stat-pipeline" class="mt-3.5 text-[28px] font-semibold leading-none tracking-tight text-slate-950 tabular-nums sm:text-3xl">—</p>
+        <p id="stat-pipeline-sub" class="mt-2 truncate text-[11px] font-medium text-slate-500">Loading…</p>
+        <span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-amber-500/70 to-amber-300/30"></span>
+      </article>
+    </section>
+
+    <!-- Pipeline panel -->
+    <section class="mt-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-card" aria-label="Lead queue">
+      <div class="flex flex-col gap-4 border-b border-slate-100 p-4 sm:p-5 xl:flex-row xl:items-center xl:justify-between">
+        <div class="flex flex-wrap items-center gap-1" role="tablist" aria-label="Filter by status">
+          <button type="button" role="tab" data-status-tab="" class="status-tab">All <span data-count="all" class="status-tab-count">0</span></button>
+          <button type="button" role="tab" data-status-tab="New" class="status-tab">New <span data-count="New" class="status-tab-count">0</span></button>
+          <button type="button" role="tab" data-status-tab="Contacted" class="status-tab">Contacted <span data-count="Contacted" class="status-tab-count">0</span></button>
+          <button type="button" role="tab" data-status-tab="Closed" class="status-tab">Closed <span data-count="Closed" class="status-tab-count">0</span></button>
+        </div>
+
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label class="relative block">
+            <span class="sr-only">Search leads</span>
+            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+            <input id="search-input" type="search" autocomplete="off" placeholder="Search name, company, email…" class="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-14 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 sm:w-[280px]" />
+            <kbd class="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 sm:block">/</kbd>
+          </label>
+
+          <label class="relative block">
+            <span class="sr-only">Sort leads</span>
+            <select id="sort-select" class="h-9 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-xs font-medium text-slate-600 shadow-sm outline-none transition hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 sm:w-auto">
+              <option value="urgency">Urgency + recency</option>
+              <option value="score">Priority score</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+            <svg class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+          </label>
+
+          <a id="export-link" href="/api/leads/export.csv" class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15" title="Export current filters to CSV">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v12M7.5 10.5L12 15l4.5-4.5M4 20h16" />
+            </svg>
+            <span class="hidden sm:inline">Export</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-5">
+        <label class="relative">
+          <span class="sr-only">Filter by urgency</span>
+          <select id="filter-urgency" class="filter-select">
+            <option value="">All urgency</option>
+            {% for urgency in meta.urgencies %}
+            <option value="{{ urgency }}">{{ urgency }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="relative">
+          <span class="sr-only">Filter by category</span>
+          <select id="filter-category" class="filter-select">
+            <option value="">All categories</option>
+            {% for category in meta.categories %}
+            <option value="{{ category }}">{{ category }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <button id="qualified-toggle" type="button" aria-pressed="false" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15">
+          <span id="qualified-dot" class="h-1.5 w-1.5 rounded-full bg-slate-300 transition"></span>
+          Qualified only
+        </button>
+
+        <button id="clear-filters" type="button" class="hidden h-8 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-indigo-600 transition hover:bg-indigo-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          Clear filters
+        </button>
+
+        <span id="filter-summary" class="ml-auto hidden items-center gap-1.5 text-[11px] font-medium text-slate-400 sm:inline-flex">
+          <span id="filter-count" class="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200">0</span>
+          active filters
+        </span>
+      </div>
+
+      <div id="table-wrap" class="overflow-x-auto">
+        <table class="w-full min-w-[1040px] border-collapse text-left">
+          <thead>
+            <tr class="border-b border-slate-100 bg-white text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              <th scope="col" class="px-5 py-3 font-semibold">Lead</th>
+              <th scope="col" class="px-3 py-3 font-semibold">Category</th>
+              <th scope="col" class="px-3 py-3 font-semibold">Urgency</th>
+              <th scope="col" class="px-3 py-3 font-semibold">Score</th>
+              <th scope="col" class="px-3 py-3 font-semibold">Budget</th>
+              <th scope="col" class="px-3 py-3 font-semibold">Status</th>
+              <th scope="col" class="px-3 py-3 font-semibold">Received</th>
+              <th scope="col" class="w-10 px-3 py-3"><span class="sr-only">Open</span></th>
+            </tr>
+          </thead>
+          <tbody id="lead-tbody" class="divide-y divide-slate-100/80">
+            {% for _ in range(6) %}
+            <tr class="skeleton-row">
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-9 w-9 animate-pulse rounded-full bg-slate-100"></div>
+                  <div class="space-y-2">
+                    <div class="h-3 w-32 animate-pulse rounded bg-slate-100"></div>
+                    <div class="h-2.5 w-44 animate-pulse rounded bg-slate-100"></div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-3 py-4"><div class="h-5 w-24 animate-pulse rounded-full bg-slate-100"></div></td>
+              <td class="px-3 py-4"><div class="h-5 w-14 animate-pulse rounded-full bg-slate-100"></div></td>
+              <td class="px-3 py-4"><div class="h-3 w-16 animate-pulse rounded bg-slate-100"></div></td>
+              <td class="px-3 py-4"><div class="h-3 w-16 animate-pulse rounded bg-slate-100"></div></td>
+              <td class="px-3 py-4"><div class="h-5 w-20 animate-pulse rounded-full bg-slate-100"></div></td>
+              <td class="px-3 py-4"><div class="h-3 w-14 animate-pulse rounded bg-slate-100"></div></td>
+              <td class="px-3 py-4"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="empty-state" class="hidden"></div>
+
+      <div class="flex flex-col gap-2 border-t border-slate-100 px-4 py-3.5 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <p id="table-summary" aria-live="polite">Loading leads…</p>
+        <p class="flex items-center gap-1.5">
+          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 6h16M7 12h10M10 18h4" />
+          </svg>
+          Sorted by <span id="sort-label" class="font-medium text-slate-500">urgency, then recency</span>
+        </p>
+      </div>
+    </section>
+
+    <footer class="flex flex-col gap-2 py-7 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+      <p>{{ app_name }} v1.0 · FastAPI + SQLite · <span id="footer-engine">rules</span> triage</p>
+      <p class="flex items-center gap-2">
+        <span>Webhook</span>
+        <code class="rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[10px] text-slate-600">POST /api/leads</code>
+      </p>
+    </footer>
+  </main>
+
+  <!-- Detail drawer -->
+  <div id="detail-overlay" class="fixed inset-0 z-50 hidden">
+    <div id="detail-backdrop" class="absolute inset-0 bg-slate-950/30 opacity-0 backdrop-blur-[2px] transition-opacity duration-200"></div>
+    <aside id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title" class="absolute right-0 top-0 flex h-full w-full max-w-[600px] translate-x-full flex-col bg-white shadow-drawer transition-transform duration-300 ease-out">
+      <div id="detail-content" class="flex-1 overflow-y-auto overscroll-contain"></div>
+      <div id="detail-footer" class="border-t border-slate-100 bg-white"></div>
+    </aside>
+  </div>
+
+  <!-- Test lead modal -->
+  <div id="test-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="test-modal-title">
+    <div id="test-backdrop" class="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"></div>
+    <div class="modal-card relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5">
+      <div class="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v18M3 12h18" />
+            </svg>
+          </span>
+          <div>
+            <h2 id="test-modal-title" class="text-base font-semibold tracking-tight text-slate-950">Submit test lead</h2>
+            <p class="mt-0.5 text-xs text-slate-500">Runs the exact <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-600">POST /api/leads</code> intake path and triages in real time.</p>
+          </div>
+        </div>
+        <button type="button" data-close-test class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15" aria-label="Close test lead form">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+
+      <form id="test-lead-form" class="flex min-h-0 flex-1 flex-col" novalidate>
+        <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
+          <div>
+            <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Quick scenarios</p>
+            <div id="sample-buttons" class="flex flex-wrap gap-1.5">
+              <button type="button" data-sample="urgent" class="sample-chip">Urgent outage</button>
+              <button type="button" data-sample="implementation" class="sample-chip">New build</button>
+              <button type="button" data-sample="inquiry" class="sample-chip">General inquiry</button>
+              <button type="button" id="reset-test-form" class="sample-chip">Clear</button>
+            </div>
+          </div>
+
+          <div id="form-error" class="hidden rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700" role="alert"></div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="field-label">Full name <span class="text-rose-500">*</span></span>
+              <input name="name" type="text" required maxlength="120" autocomplete="name" placeholder="Maya Chen" class="field-input" />
+            </label>
+            <label class="block">
+              <span class="field-label">Work email <span class="text-rose-500">*</span></span>
+              <input name="email" type="email" required maxlength="254" autocomplete="email" placeholder="maya@company.com" class="field-input" />
+            </label>
+            <label class="block">
+              <span class="field-label">Company</span>
+              <input name="company" type="text" maxlength="160" autocomplete="organization" placeholder="Acme Systems" class="field-input" />
+            </label>
+            <label class="block">
+              <span class="field-label">Phone</span>
+              <input name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="+1 (415) 555-0100" class="field-input" />
+            </label>
+            <label class="block">
+              <span class="field-label">Budget</span>
+              <div class="relative">
+                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                <input name="budget" type="text" inputmode="decimal" placeholder="12,000" class="field-input pl-7" />
+              </div>
+              <span class="mt-1 block text-[10px] text-slate-400">Accepts <code class="font-mono">12000</code>, <code class="font-mono">$12k</code>, or blank.</span>
+            </label>
+            <label class="block">
+              <span class="field-label">Source</span>
+              <input name="source" type="text" maxlength="40" value="dashboard" class="field-input bg-slate-50/60" />
+              <span class="mt-1 block text-[10px] text-slate-400">Stored with the lead for attribution.</span>
+            </label>
+          </div>
+
+          <label class="block">
+            <span class="field-label">Project description <span class="text-rose-500">*</span></span>
+            <textarea name="project_description" required minlength="5" maxlength="20000" rows="5" placeholder="Describe the problem, scope, timeline, existing systems, and what success looks like…" class="field-input resize-y leading-relaxed"></textarea>
+            <span class="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+              <span>Triage uses urgency language, deadlines, category signals, and description completeness.</span>
+              <span id="desc-count" class="font-mono tabular-nums">0</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p class="hidden items-center gap-1.5 text-[10px] text-slate-400 sm:flex">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 10.5v5M12 7.5h.01" /></svg>
+            Stored locally in SQLite.
+          </p>
+          <div class="flex items-center gap-2">
+            <button type="button" data-close-test class="h-9 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15">Cancel</button>
+            <button id="submit-lead-btn" type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20 disabled:cursor-not-allowed disabled:opacity-60">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              <span>Run triage</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container" class="pointer-events-none fixed bottom-4 right-4 z-[80] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2" aria-live="polite" aria-atomic="false"></div>
+
+  <script>
+    window.__TRIAGEOPS__ = {{ bootstrap|tojson }};
+  </script>
+  <script type="module" src="/static/js/main.js?v=1.0.0"></script>
+</body>
+</html>

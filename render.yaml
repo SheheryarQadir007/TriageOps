@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: triageops
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      # Render's free tier has an ephemeral filesystem. With demo seeding on,
+      # a fresh deploy repopulates the dashboard automatically.
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: ENABLE_DEMO_TOOLS
+        value: "false"
+      - key: BUDGET_THRESHOLD
+        value: "5000"
+      - key: MIN_DESCRIPTION_CHARS
+        value: "60"
+      # "auto" selects OpenAI/Gemini only when a matching key is configured,
+      # otherwise the deterministic rule engine is used.
+      - key: TRIAGE_PROVIDER
+        value: auto
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: ""
+
+# SQLite lives inside the container/instance. For durable production data,
+# attach a paid persistent disk and set DATABASE_URL to a path on it, e.g.:
+#
+#     disk:
+#       name: triageops-data
+#       mountPath: /var/data
+#       sizeGB: 1
+#
+# then add DATABASE_URL=sqlite:////var/data/triageops.db to envVars.
